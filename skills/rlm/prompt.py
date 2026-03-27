@@ -44,3 +44,37 @@ def build_prompt(query: str, manifest: dict, context_items: list = None) -> str:
     if context_items:
         prompt += "\n\n## Context gathered so far\n\n" + "\n\n---\n\n".join(context_items)
     return prompt
+
+
+# ---------------------------------------------------------------------------
+# Reference adapter — run as: python prompt.py
+# Reads prompt from stdin, calls OpenAI-compatible API, prints to stdout.
+# ---------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    import json
+    import os
+    import sys
+    import urllib.request
+
+    _prompt = sys.stdin.read()
+    _key    = os.environ.get("OPENAI_API_KEY", "")
+    _base   = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/")
+    _model  = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+
+    _payload = json.dumps({
+        "model": _model,
+        "messages": [{"role": "user", "content": _prompt}],
+    }).encode()
+
+    _req = urllib.request.Request(
+        f"{_base}/chat/completions",
+        data=_payload,
+        headers={
+            "Authorization": f"Bearer {_key}",
+            "Content-Type": "application/json",
+        },
+    )
+    with urllib.request.urlopen(_req) as _r:
+        _data = json.load(_r)
+    print(_data["choices"][0]["message"]["content"])
