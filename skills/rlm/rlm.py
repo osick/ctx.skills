@@ -4,9 +4,14 @@ import re
 import fnmatch
 import os
 import subprocess
+import argparse
+import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Union, Dict, List, Optional, Tuple
+# prompt.py must be in the same directory as rlm.py (no package install needed)
+from prompt import build_prompt
 
 
 # ---------------------------------------------------------------------------
@@ -161,3 +166,95 @@ def call_llm(prompt: str, llm_cmd: str) -> str:
             f"LLM command failed (exit {result.returncode}): {result.stderr.strip()}"
         )
     return result.stdout.strip()
+
+
+# ---------------------------------------------------------------------------
+# Core recursion loop
+# ---------------------------------------------------------------------------
+
+def rlm(
+    query: str,
+    manifest: "Manifest",
+    llm_cmd: str,
+    max_depth: int,
+    max_turns: int,
+    _depth: int = 0,
+    _calls: Optional[List[int]] = None,
+) -> str:
+    if _calls is None:
+        _calls = [0]
+
+    if _depth > max_depth:
+        return f"[Max recursion depth {max_depth} reached]"
+
+    context_items: List[str] = []
+
+    for _ in range(max_turns):
+        _calls[0] += 1
+        if _calls[0] > max_depth * max_turns * 2:  # global call budget
+            return f"[Global call budget ({max_depth * max_turns * 2}) exhausted]"
+        prompt = build_prompt(query, manifest, context_items or None)
+        response = call_llm(prompt, llm_cmd)
+        tag = parse_tags(response)
+
+        if isinstance(tag, AnswerTag):
+            return tag.content
+
+        if isinstance(tag, PeekTag):
+            content = peek_lines(tag.file, tag.start, tag.end)
+            context_items.append(
+                f"[peek {tag.file} lines {tag.start}-{tag.end}]\n{content}"
+            )
+        elif isinstance(tag, RecurseTag):
+            sub_manifest: Manifest = {tag.file: (tag.start, tag.end)}
+            sub_result = rlm(
+                tag.query, sub_manifest, llm_cmd,
+                max_depth, max_turns, _depth + 1, _calls
+            )
+            context_items.append(f"[sub-query: {tag.query}]\n{sub_result}")
+
+    return context_items[-1] if context_items else "[No answer produced within turn limit]"
+
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Recursive Language Model — process large inputs with any LLM"
+    )
+    parser.add_argument("--query",     required=True, help="Question to answer")
+    parser.add_argument("--input",     required=True, help="File, directory, or - for stdin")
+    parser.add_argument("--llm-cmd",   required=True, dest="llm_cmd",
+                        help="Shell command: reads prompt from stdin, writes answer to stdout")
+    parser.add_argument("--max-depth", type=int, default=4,  dest="max_depth")
+    parser.add_argument("--max-turns", type=int, default=10, dest="max_turns")
+    parser.add_argument("--include",   action="append", metavar="GLOB",
+                        help="Include only files matching glob (repeatable)")
+    parser.add_argument("--exclude",   action="append", metavar="GLOB",
+                        help="Exclude files matching glob (repeatable)")
+    args = parser.parse_args()
+
+    tmp = None
+    if args.input == "-":
+        tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False)
+        tmp.write(sys.stdin.read())
+        tmp.close()
+        input_path = tmp.name
+    else:
+        input_path = args.input
+
+    try:
+        manifest = build_manifest(input_path, args.include, args.exclude)
+        if not manifest:
+            sys.exit("No files found matching the given input and filters.")
+        result = rlm(args.query, manifest, args.llm_cmd, args.max_depth, args.max_turns)
+        print(result)
+    finally:
+        if tmp:
+            os.unlink(tmp.name)
+
+
+if __name__ == "__main__":
+    main()
