@@ -46,3 +46,19 @@ def test_build_prompt_multiple_manifest_entries():
     assert "src/models.py" in result
     assert "1-312" in result
     assert "1-89" in result
+
+
+def test_build_prompt_empty_context_items_not_included():
+    """Empty list should behave same as None — no context section."""
+    manifest = {"f.txt": (1, 5)}
+    result = build_prompt("q", manifest, context_items=[])
+    assert "Context gathered so far" not in result
+
+
+def test_build_prompt_multiple_context_items_separated():
+    """Multiple context items should be separated by ---."""
+    manifest = {"f.txt": (1, 5)}
+    result = build_prompt("q", manifest, context_items=["item1", "item2"])
+    assert "item1" in result
+    assert "item2" in result
+    assert "---" in result

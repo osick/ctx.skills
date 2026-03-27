@@ -13,7 +13,8 @@ You are an expert analyst equipped with tools to explore large inputs without lo
 
 You will receive:
 1. A query to answer
-2. A manifest listing available files and their line ranges
+2. A manifest listing available files and their line ranges, one file per line:
+      path/to/file.py    lines N-M
 3. Any context gathered from previous tool uses
 
 Respond using EXACTLY ONE of these tags per message:
@@ -30,11 +31,11 @@ Respond using EXACTLY ONE of these tags per message:
 Rules:
 - Never guess. Always peek at content before making claims about it.
 - Use recurse for sections too large to peek at once.
-- Emit exactly one tag per response. No text outside the tag.
+- Emit exactly one tag per response. Any text outside the tag is ignored by the parser.
 """
 
 
-def build_prompt(query: str, manifest: dict, context_items: list = None) -> str:  # noqa: E501
+def build_prompt(query: str, manifest: dict, context_items: list = None) -> str:
     manifest_text = "\n".join(
         f"{path}    lines {start}-{end}"
         for path, (start, end) in manifest.items()
