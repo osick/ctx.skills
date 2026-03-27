@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """Recursive Language Model orchestrator. See SKILL.md for usage."""
 import re
+import fnmatch
+import os
 from dataclasses import dataclass
-from typing import Union
+from pathlib import Path
+from typing import Union, Dict, List, Optional, Tuple
 
 
 # ---------------------------------------------------------------------------
@@ -70,3 +73,50 @@ def parse_tags(response: str) -> Union[PeekTag, RecurseTag, AnswerTag]:
                     )
 
     return AnswerTag(content=response.strip())
+
+
+# ---------------------------------------------------------------------------
+# Manifest builder
+# ---------------------------------------------------------------------------
+
+Manifest = Dict[str, Tuple[int, int]]
+
+
+def _count_lines(path: Path) -> int:
+    try:
+        with open(path, encoding="utf-8", errors="ignore") as f:
+            return sum(1 for _ in f)
+    except OSError:
+        return 0
+
+
+def _matches(rel: str, patterns: Optional[List[str]]) -> bool:
+    if not patterns:
+        return True
+    return any(fnmatch.fnmatch(rel, p) for p in patterns)
+
+
+def build_manifest(
+    input_path: str,
+    include: Optional[List[str]] = None,
+    exclude: Optional[List[str]] = None,
+) -> Manifest:
+    p = Path(input_path)
+    if p.is_file():
+        n = _count_lines(p)
+        return {str(p): (1, n)} if n > 0 else {}
+
+    manifest: Manifest = {}
+    for root, dirs, files in os.walk(p):
+        dirs[:] = sorted(d for d in dirs if not d.startswith("."))
+        for fname in sorted(files):
+            fpath = Path(root) / fname
+            rel = str(fpath.relative_to(p))
+            if exclude and _matches(rel, exclude):
+                continue
+            if not _matches(rel, include):
+                continue
+            n = _count_lines(fpath)
+            if n > 0:
+                manifest[str(fpath)] = (1, n)
+    return manifest
