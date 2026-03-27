@@ -17,8 +17,7 @@ def test_parse_answer_strips_whitespace():
 
 def test_parse_answer_multiline():
     result = parse_tags("<answer>\nline1\nline2\n</answer>")
-    assert "line1" in result.content
-    assert "line2" in result.content
+    assert result.content == "line1\nline2"
 
 
 def test_parse_peek():
@@ -66,3 +65,29 @@ def test_fallback_on_malformed_peek_no_attrs():
 def test_fallback_on_peek_missing_lines():
     result = parse_tags('<peek file="x.py"/>')
     assert isinstance(result, AnswerTag)
+
+
+def test_fallback_on_inverted_range_peek():
+    result = parse_tags('<peek file="x.py" lines="50-10"/>')
+    assert isinstance(result, AnswerTag)
+
+
+def test_fallback_on_inverted_range_recurse():
+    result = parse_tags('<recurse query="q" file="x.py" lines="50-10"/>')
+    assert isinstance(result, AnswerTag)
+
+
+def test_fallback_on_recurse_missing_attrs():
+    result = parse_tags('<recurse file="x.py" lines="1-5"/>')  # missing query
+    assert isinstance(result, AnswerTag)
+
+
+def test_answer_takes_priority_over_recurse():
+    result = parse_tags('<recurse query="q" file="x.py" lines="1-5"/> <answer>done</answer>')
+    assert isinstance(result, AnswerTag)
+    assert result.content == "done"
+
+
+def test_peek_takes_priority_over_recurse():
+    result = parse_tags('<recurse query="q" file="x.py" lines="1-5"/> <peek file="x.py" lines="1-5"/>')
+    assert isinstance(result, PeekTag)

@@ -44,13 +44,17 @@ def parse_tags(response: str) -> Union[PeekTag, RecurseTag, AnswerTag]:
     if m:
         return AnswerTag(content=m.group(1).strip())
 
+    # When multiple action tags appear (unexpected), <peek> takes priority over <recurse>.
+    # The LLM is instructed to emit only one tag per response (see prompt.py SYSTEM_PROMPT).
     m = _PEEK_RE.search(response)
     if m:
         a = _attrs(m.group(1))
         if "file" in a and "lines" in a:
             parts = a["lines"].split("-")
             if len(parts) == 2 and all(p.isdigit() for p in parts):
-                return PeekTag(file=a["file"], start=int(parts[0]), end=int(parts[1]))
+                s, e = int(parts[0]), int(parts[1])
+                if s <= e:
+                    return PeekTag(file=a["file"], start=s, end=e)
 
     m = _RECURSE_RE.search(response)
     if m:
@@ -58,9 +62,11 @@ def parse_tags(response: str) -> Union[PeekTag, RecurseTag, AnswerTag]:
         if "query" in a and "file" in a and "lines" in a:
             parts = a["lines"].split("-")
             if len(parts) == 2 and all(p.isdigit() for p in parts):
-                return RecurseTag(
-                    query=a["query"], file=a["file"],
-                    start=int(parts[0]), end=int(parts[1])
-                )
+                s, e = int(parts[0]), int(parts[1])
+                if s <= e:
+                    return RecurseTag(
+                        query=a["query"], file=a["file"],
+                        start=s, end=e
+                    )
 
     return AnswerTag(content=response.strip())
