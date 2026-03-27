@@ -1,7 +1,7 @@
 import sys, os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "skills", "rlm"))
 
-from prompt import build_prompt, SYSTEM_PROMPT
+from rlm import build_prompt, _SYSTEM_PROMPT
 
 
 def test_build_prompt_contains_query():
@@ -20,7 +20,7 @@ def test_build_prompt_contains_manifest_entry():
 def test_build_prompt_contains_system_prompt():
     manifest = {"f.txt": (1, 5)}
     result = build_prompt("q", manifest)
-    assert SYSTEM_PROMPT in result
+    assert _SYSTEM_PROMPT in result
 
 
 def test_build_prompt_no_context_by_default():

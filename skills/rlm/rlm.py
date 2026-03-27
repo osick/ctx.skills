@@ -10,8 +10,18 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Union, Dict, List, Optional, Tuple
-# prompt.py must be in the same directory as rlm.py (no package install needed)
-from prompt import build_prompt
+_SYSTEM_PROMPT = (Path(__file__).parent / "system_prompt.txt").read_text(encoding="utf-8")
+
+
+def build_prompt(query: str, manifest: dict, context_items: list = None) -> str:
+    manifest_text = "\n".join(
+        f"{path}    lines {start}-{end}"
+        for path, (start, end) in manifest.items()
+    )
+    prompt = f"{_SYSTEM_PROMPT}\n## Manifest\n\n{manifest_text}\n\n## Query\n\n{query}"
+    if context_items:
+        prompt += "\n\n## Context gathered so far\n\n" + "\n\n---\n\n".join(context_items)
+    return prompt
 
 
 # ---------------------------------------------------------------------------
@@ -54,7 +64,7 @@ def parse_tags(response: str) -> Union[PeekTag, RecurseTag, AnswerTag]:
         return AnswerTag(content=m.group(1).strip())
 
     # When multiple action tags appear (unexpected), <peek> takes priority over <recurse>.
-    # The LLM is instructed to emit only one tag per response (see prompt.py SYSTEM_PROMPT).
+    # The LLM is instructed to emit only one tag per response (see system_prompt.txt).
     m = _PEEK_RE.search(response)
     if m:
         a = _attrs(m.group(1))
