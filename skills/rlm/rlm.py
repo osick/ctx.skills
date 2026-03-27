@@ -3,6 +3,7 @@
 import re
 import fnmatch
 import os
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Union, Dict, List, Optional, Tuple
@@ -127,3 +128,36 @@ def build_manifest(
             if n > 0:
                 manifest[str(fpath)] = (1, n)
     return manifest
+
+
+# ---------------------------------------------------------------------------
+# File reading
+# ---------------------------------------------------------------------------
+
+def peek_lines(filepath: str, start: int, end: int) -> str:
+    lines = []
+    try:
+        with open(filepath, encoding="utf-8", errors="ignore") as f:
+            for i, line in enumerate(f, 1):
+                if i > end:
+                    break
+                if i >= start:
+                    lines.append(f"{i}: {line}")
+    except OSError as e:
+        return f"[Error reading {filepath}: {e}]"
+    return "".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# LLM call
+# ---------------------------------------------------------------------------
+
+def call_llm(prompt: str, llm_cmd: str) -> str:
+    result = subprocess.run(
+        llm_cmd, shell=True, input=prompt, capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"LLM command failed (exit {result.returncode}): {result.stderr.strip()}"
+        )
+    return result.stdout.strip()
