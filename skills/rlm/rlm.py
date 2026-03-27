@@ -90,6 +90,10 @@ def _count_lines(path: Path) -> int:
         return 0
 
 
+# NOTE: Pattern matching uses fnmatch which treats '/' as a regular character.
+# '*.py' matches at any depth (e.g., 'src/auth/login.py') because '*' absorbs slashes.
+# 'tests/*' only covers one directory level — 'tests/sub/foo.py' is NOT excluded.
+# '**' glob syntax is NOT supported. Use patterns without slashes for depth-independent matching.
 def _matches(rel: str, patterns: Optional[List[str]]) -> bool:
     if not patterns:
         return True
@@ -103,6 +107,8 @@ def build_manifest(
 ) -> Manifest:
     p = Path(input_path)
     if p.is_file():
+        # Single-file input: include/exclude filters do not apply.
+        # The caller explicitly selected this file, so it is always included.
         n = _count_lines(p)
         return {str(p): (1, n)} if n > 0 else {}
 
@@ -112,6 +118,7 @@ def build_manifest(
         for fname in sorted(files):
             fpath = Path(root) / fname
             rel = str(fpath.relative_to(p))
+            # Guard needed: _matches(rel, None) returns True, which would exclude everything.
             if exclude and _matches(rel, exclude):
                 continue
             if not _matches(rel, include):
