@@ -102,19 +102,27 @@ def make_result(
 # ---------------------------------------------------------------------------
 
 def _run_direct(question: str, sandbox_dir: str, llm_cmd: str) -> tuple[str, float]:
-    """Concatenate all sandbox files and send with question to LLM directly.
+    """Run the LLM in the sandbox directory and let it read the files itself.
+
+    Creates a combined context.txt from all chunk files, then launches the LLM
+    with cwd set to the sandbox directory.  The prompt instructs the LLM to
+    read the files rather than piping the full context through stdin.
 
     Returns (response, elapsed_seconds).
     """
     sb = Path(sandbox_dir) / "sandbox"
+
+    # Concatenate all chunks into a single context.txt for convenience
     chunks = []
-    for f in sorted(sb.glob("*.txt")):
+    for f in sorted(sb.glob("chunk_*.txt")):
         chunks.append(f.read_text(encoding="utf-8"))
-    context = "\n".join(chunks)
+    combined = "\n".join(chunks)
+    (sb / "context.txt").write_text(combined, encoding="utf-8")
 
     prompt = (
-        f"Read the following text carefully, then answer the question.\n\n"
-        f"--- TEXT ---\n{context}\n--- END TEXT ---\n\n"
+        f"You are in a directory that contains text files with context information.\n"
+        f"Read the file 'context.txt' (or the individual chunk_*.txt files) "
+        f"and answer the following question.\n\n"
         f"Question: {question}\n\n"
         f"Answer concisely."
     )
@@ -123,6 +131,7 @@ def _run_direct(question: str, sandbox_dir: str, llm_cmd: str) -> tuple[str, flo
     result = subprocess.run(
         llm_cmd, shell=True, input=prompt,
         capture_output=True, text=True,
+        cwd=str(sb),
     )
     elapsed = time.monotonic() - start
 

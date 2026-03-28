@@ -1,0 +1,68 @@
+[
+  {
+    "mode": "direct",
+    "needle_type": "reasoning",
+    "size": 2000000,
+    "seed": 111,
+    "expected": "phone",
+    "actual": "Now I have the three key statements embedded in the text:\n\n1. \"The price of phone is higher than the speaker.\" (chunks 0399-0400)\n2. \"speaker costs more than camera.\" (chunks 1999-2000)\n3. \"The price of camera is the lowest of all.\" (chunks 3599-3600)\n\nThis gives the ranking: **camera < speaker < phone**\n\nThe most expensive item is the **phone**.",
+    "score": 1.0,
+    "elapsed_seconds": 224.759,
+    "token_count": 2000000
+  },
+  {
+    "mode": "rlm",
+    "needle_type": "reasoning",
+    "size": 2000000,
+    "seed": 111,
+    "expected": "phone",
+    "actual": "The phone is the most expensive item. The scattered price clues reveal: the phone's price is higher than the speaker's, the speaker costs more than the camera, and the camera's price is the lowest of all. So the ranking is phone > speaker > camera.",
+    "score": 1.0,
+    "elapsed_seconds": 57.349,
+    "token_count": 2000000
+  },
+  {
+    "mode": "direct",
+    "needle_type": "reasoning",
+    "size": 2000000,
+    "seed": 4,
+    "expected": "speaker",
+    "actual": "Now I can see all three hidden statements:\n\n1. **\"The price of tablet is the lowest\"**\n2. **\"the camera costs more\"** (than tablet)\n3. **\"speaker is higher than the camera\"**\n\nSo the ranking from most to least expensive is: **speaker > camera > tablet**.\n\nThe **speaker** is the most expensive item.",
+    "score": 1.0,
+    "elapsed_seconds": 305.177,
+    "token_count": 2000000
+  },
+  {
+    "mode": "rlm",
+    "needle_type": "reasoning",
+    "size": 2000000,
+    "seed": 4,
+    "expected": "speaker",
+    "actual": "The speaker is the most expensive item. The text contains three embedded price clues: the speaker costs more than the camera, the camera costs more than the tablet, and the tablet is the lowest priced of all. This gives the ordering: speaker > camera > tablet.",
+    "score": 1.0,
+    "elapsed_seconds": 40.509,
+    "token_count": 2000000
+  },
+  {
+    "mode": "direct",
+    "needle_type": "reasoning",
+    "size": 2000000,
+    "seed": 6,
+    "expected": "Xiaohong",
+    "actual": "**Xiaohong** is the oldest.\n\nThe context contains three embedded statements establishing the age ranking:\n1. Xiaohong is older than Xiaowei\n2. Xiaowei is younger than Xiaohong but older than Xiaofang\n3. Xiaofang is the youngest\n\nSo the order from oldest to youngest is: **Xiaohong > Xiaowei > Xiaofang**.",
+    "score": 1.0,
+    "elapsed_seconds": 83.657,
+    "token_count": 2000000
+  },
+  {
+    "mode": "rlm",
+    "needle_type": "reasoning",
+    "size": 2000000,
+    "seed": 6,
+    "expected": "Xiaohong",
+    "actual": "Xiaohong is the oldest. The text states \"Xiaohong is older than Xiaowei\" and \"Xiaowei is younger than Xiaohong but older than Xiaofang,\" establishing the age order as Xiaohong > Xiaowei > Xiaofang.",
+    "score": 1.0,
+    "elapsed_seconds": 178.758,
+    "token_count": 2000000
+  }
+]

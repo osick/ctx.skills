@@ -1,0 +1,108 @@
+[
+  {
+    "mode": "direct",
+    "needle_type": "counting",
+    "size": 2000000,
+    "seed": 111,
+    "expected": [
+      41,
+      64,
+      25,
+      51,
+      54,
+      79
+    ],
+    "actual": "The little animals that reported counts are:\n\n- **A bee** counted **41 snowflakes**\n- **A bee** counted **54 snowflakes**\n- **A bee** counted **64 snowflakes**\n- **A hummingbird** counted **25 snowflakes**\n- **A hummingbird** counted **79 snowflakes**\n\nAll five instances involve small animals (bees and hummingbirds) counting snowflakes, embedded as needle sentences within longer unrelated passages.",
+    "score": 0.8333333333333334,
+    "elapsed_seconds": 95.204,
+    "token_count": 2000000
+  },
+  {
+    "mode": "rlm",
+    "needle_type": "counting",
+    "size": 2000000,
+    "seed": 111,
+    "expected": [
+      41,
+      64,
+      25,
+      51,
+      54,
+      79
+    ],
+    "actual": "The little animals reported the following counts:\n\n1. **A bee** counted **41 snowflakes**\n2. **A bee** counted **64 snowflakes**\n3. **A hummingbird** counted **25 snowflakes**\n4. **A bee** counted **51 snowflakes**\n5. **A bee** counted **54 snowflakes**\n6. **A hummingbird** counted **79 snowflakes**\n7. **The elephant** counted **1 bird**",
+    "score": 1.0,
+    "elapsed_seconds": 117.915,
+    "token_count": 2000000
+  },
+  {
+    "mode": "direct",
+    "needle_type": "counting",
+    "size": 2000000,
+    "seed": 4,
+    "expected": [
+      39,
+      14,
+      93,
+      51,
+      62,
+      20
+    ],
+    "actual": "Based on searching through all the text files, here are the counts reported by little animals:\n\n- **Bacteria** counted **39 snowflakes**\n- **Bacteria** counted **14 snowflakes**\n- **Bacteria** counted **93 snowflakes**\n- **Bacteria** counted **20 snowflakes**\n- **Hummingbird** counted **51 snowflakes**\n- **Flea** counted **62 snowflakes**\n\n(There was also an **elephant** that counted **1 bird**, but that's not a little animal.)",
+    "score": 1.0,
+    "elapsed_seconds": 304.328,
+    "token_count": 2000000
+  },
+  {
+    "mode": "rlm",
+    "needle_type": "counting",
+    "size": 2000000,
+    "seed": 4,
+    "expected": [
+      39,
+      14,
+      93,
+      51,
+      62,
+      20
+    ],
+    "actual": "I found all the needles. Here are the counts reported by each little animal:\n\n- **A bacteria** counted **39 snowflakes** (line 400)\n- **A bacteria** counted **14 snowflakes** (line 934)\n- **A bacteria** counted **93 snowflakes** (line 1467)\n- **A flea** counted **62 snowflakes** (line 2534)\n- **A bacteria** counted **20 snowflakes** (line 3067)\n- **The elephant** counted **1 bird** (line 3600-3601)\n\nNote: The elephant is not a \"little animal,\" so the counts reported specifically by little animals (bacteria and flea) are:\n\n| Animal | Count | Thing |\n|--------|-------|-------|\n| A bacteria | 39 | snowflakes |\n| A bacteria | 14 | snowflakes |\n| A bacteria | 93 | snowflakes |\n| A flea | 62 | snowflakes |\n| A bacteria | 20 | snowflakes |",
+    "score": 0.8333333333333334,
+    "elapsed_seconds": 76.655,
+    "token_count": 2000000
+  },
+  {
+    "mode": "direct",
+    "needle_type": "counting",
+    "size": 2000000,
+    "seed": 6,
+    "expected": [
+      63,
+      98,
+      34,
+      5,
+      1
+    ],
+    "actual": "The elephant is not a \"little animal.\" Now I have all the data. Let me compile the results:\n\nHere are all the counts reported by little animals:\n\n| Animal | Count | Thing |\n|--------|-------|-------|\n| **Bee** | 63 | snowflakes |\n| **Hummingbird** | 98 | snowflakes |\n| **Flea** | 34 | snowflakes |\n| **Flea** | 5 | snowflakes |\n| **Bacteria** | 1 | snowflakes |\n\nNote: There was also \"The elephant counted 1 bird\" but an elephant is not a little animal.",
+    "score": 1.0,
+    "elapsed_seconds": 167.209,
+    "token_count": 2000000
+  },
+  {
+    "mode": "rlm",
+    "needle_type": "counting",
+    "size": 2000000,
+    "seed": 6,
+    "expected": [
+      63,
+      98,
+      34,
+      5,
+      1
+    ],
+    "actual": "Interesting - chunk_3599 ends with \"The elephant\" and chunk_3600 starts with \"counted 1 bird.\" So \"The elephant\" is not a \"little animal.\"\n\nHere are all the counts reported by little animals:\n\n| Little Animal | Count | Item |\n|---|---|---|\n| **A bee** | 63 | snowflakes |\n| **A hummingbird** | 98 | snowflakes |\n| **A flea** | 34 | snowflakes |\n| **A flea** | 5 | snowflakes |\n| **A bacteria** | 1 | snowflakes |\n\n(There was also \"The elephant counted 1 bird,\" but an elephant is not a little animal.)",
+    "score": 1.0,
+    "elapsed_seconds": 90.47,
+    "token_count": 2000000
+  }
+]

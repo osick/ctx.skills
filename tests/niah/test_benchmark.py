@@ -5,6 +5,7 @@ import subprocess
 import sys
 import textwrap
 import pytest
+from pathlib import Path
 
 SCRIPT = os.path.join(os.path.dirname(__file__), "benchmark.py")
 GEN_SCRIPT = os.path.join(os.path.dirname(__file__), "generate_context.py")
@@ -202,3 +203,90 @@ class TestCLIIntegration:
         r = _run(["--size", "500", "--needle-type", "retrieval", "--seed", "1",
                    "--mode", "direct"], check=False)
         assert r.returncode != 0
+
+
+# ---------------------------------------------------------------------------
+# Tests for _run_direct: LLM runs in sandbox directory, not via piped context
+# ---------------------------------------------------------------------------
+
+class TestRunDirectSandbox:
+    """Verify that _run_direct creates context.txt and runs LLM in the sandbox dir."""
+
+    @pytest.fixture(autouse=True)
+    def _import_module(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("benchmark", SCRIPT)
+        self.mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.mod)
+
+    @pytest.fixture
+    def sandbox(self, tmp_path):
+        """Create a minimal sandbox with chunk files."""
+        from generate_context import generate_needle_context, write_sandbox
+        data = generate_needle_context(size=500, needle_type="retrieval", seed=42)
+        write_sandbox(data, str(tmp_path))
+        return tmp_path, data
+
+    def test_context_txt_created(self, sandbox):
+        """_run_direct should create a context.txt in the sandbox dir."""
+        tmp_path, data = sandbox
+        # Use a dummy LLM that just prints its cwd
+        llm_cmd = "pwd"
+        self.mod._run_direct(data["question"], str(tmp_path), llm_cmd)
+        context_file = tmp_path / "sandbox" / "context.txt"
+        assert context_file.exists(), "context.txt should be created in sandbox dir"
+
+    def test_context_txt_contains_all_chunks(self, sandbox):
+        """context.txt should contain the concatenated content of all chunk files."""
+        tmp_path, data = sandbox
+        llm_cmd = "echo dummy"
+        self.mod._run_direct(data["question"], str(tmp_path), llm_cmd)
+        context_file = tmp_path / "sandbox" / "context.txt"
+        combined = context_file.read_text(encoding="utf-8")
+        # Verify it contains content from all chunk files
+        sb_dir = tmp_path / "sandbox"
+        for f in sorted(sb_dir.glob("chunk_*.txt")):
+            chunk_content = f.read_text(encoding="utf-8")
+            assert chunk_content in combined, f"context.txt should contain {f.name}"
+
+    def test_llm_runs_in_sandbox_dir(self, sandbox):
+        """The LLM command should execute with cwd set to the sandbox directory."""
+        tmp_path, data = sandbox
+        # LLM command prints its working directory
+        llm_cmd = "pwd"
+        response, elapsed = self.mod._run_direct(data["question"], str(tmp_path), llm_cmd)
+        expected_cwd = str(tmp_path / "sandbox")
+        assert response.strip() == expected_cwd, (
+            f"LLM should run in sandbox dir {expected_cwd}, got {response.strip()}"
+        )
+
+    def test_prompt_does_not_contain_full_context(self, sandbox):
+        """The prompt sent to LLM stdin should NOT contain the full context text."""
+        tmp_path, data = sandbox
+        # LLM command dumps stdin to a file so we can inspect it
+        dump_file = tmp_path / "stdin_dump.txt"
+        llm_cmd = f"cat > {dump_file}"
+        self.mod._run_direct(data["question"], str(tmp_path), llm_cmd)
+        stdin_content = dump_file.read_text(encoding="utf-8")
+        # The prompt should contain the question
+        assert data["question"] in stdin_content, "Prompt should contain the question"
+        # The prompt should NOT contain the full concatenated context
+        sb_dir = tmp_path / "sandbox"
+        full_context = "\n".join(
+            f.read_text(encoding="utf-8") for f in sorted(sb_dir.glob("chunk_*.txt"))
+        )
+        assert full_context not in stdin_content, (
+            "Prompt should NOT contain the full context — LLM should read files itself"
+        )
+
+    def test_prompt_mentions_files(self, sandbox):
+        """The prompt should instruct the LLM to look at files in the directory."""
+        tmp_path, data = sandbox
+        dump_file = tmp_path / "stdin_dump.txt"
+        llm_cmd = f"cat > {dump_file}"
+        self.mod._run_direct(data["question"], str(tmp_path), llm_cmd)
+        stdin_content = dump_file.read_text(encoding="utf-8").lower()
+        # Should mention files or directory
+        assert any(word in stdin_content for word in ["file", "context.txt", "read"]), (
+            "Prompt should instruct LLM to read files in the directory"
+        )
