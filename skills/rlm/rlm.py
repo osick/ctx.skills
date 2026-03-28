@@ -22,7 +22,6 @@ def build_prompt(query: str, manifest: dict, context_items: list = None) -> str:
 # ---------------------------------------------------------------------------
 # Tag definitions
 # ---------------------------------------------------------------------------
-
 @dataclass
 class PeekTag:
     file: str
@@ -83,9 +82,7 @@ def parse_tags(response: str) -> Union[PeekTag, RecurseTag, AnswerTag]:
 # ---------------------------------------------------------------------------
 # Manifest builder
 # ---------------------------------------------------------------------------
-
 Manifest = Dict[str, Tuple[int, int]]
-
 
 def _count_lines(path: Path) -> int:
     try:
@@ -102,7 +99,6 @@ def _matches(rel: str, patterns: Optional[List[str]]) -> bool:
     if not patterns:
         return True
     return any(fnmatch.fnmatch(rel, p) for p in patterns)
-
 
 def build_manifest(
     input_path: str,
@@ -135,7 +131,6 @@ def build_manifest(
 # ---------------------------------------------------------------------------
 # File reading
 # ---------------------------------------------------------------------------
-
 def peek_lines(filepath: str, start: int, end: int) -> str:
     lines = []
     try:
@@ -152,7 +147,6 @@ def peek_lines(filepath: str, start: int, end: int) -> str:
 # ---------------------------------------------------------------------------
 # LLM call
 # ---------------------------------------------------------------------------
-
 def call_llm(prompt: str, llm_cmd: str) -> str:
     result = subprocess.run(
         llm_cmd, shell=True, input=prompt, capture_output=True, text=True
@@ -166,7 +160,6 @@ def call_llm(prompt: str, llm_cmd: str) -> str:
 # ---------------------------------------------------------------------------
 # Core recursion loop
 # ---------------------------------------------------------------------------
-
 def rlm(
     query: str,
     manifest: "Manifest",
@@ -213,11 +206,8 @@ def rlm(
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
-
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Recursive Language Model — process large inputs with any LLM"
-    )
+    parser = argparse.ArgumentParser(description="Recursive Language Model — process large inputs with any LLM")
     parser.add_argument("--query",     required=True, help="Question to answer")
     parser.add_argument("--input",     required=True, help="File, directory, or - for stdin")
     parser.add_argument("--llm-cmd",   required=True, dest="llm_cmd", help="Shell command: reads prompt from stdin, writes answer to stdout")
