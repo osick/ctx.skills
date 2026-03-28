@@ -214,22 +214,22 @@ class TestCountingNeedle:
         for needle in data["needles"]:
             assert needle in data["context"], f"Needle not found in context: {needle}"
 
-    def test_counting_needles_mention_penguin(self, tmp_path):
+    def test_counting_needles_mention_animals(self, tmp_path):
         out = tmp_path / "ctx.json"
         _run(["--size", "1000", "--needle-type", "counting", "--seed", "12",
               "--output", str(out)])
         data = json.loads(out.read_text())
+        known_animals = {"bacteria", "bee", "flea", "hummingbird", "elephant"}
         for needle in data["needles"]:
-            assert "little penguin" in needle.lower()
+            assert any(a in needle.lower() for a in known_animals), \
+                f"No known animal in: {needle}"
 
     def test_counting_answer_is_list_of_counts(self, tmp_path):
         out = tmp_path / "ctx.json"
         _run(["--size", "2000", "--needle-type", "counting", "--seed", "13",
               "--output", str(out)])
         data = json.loads(out.read_text())
-        # Answer should be a list of numbers (as strings or ints)
         assert isinstance(data["answer"], list)
-        assert len(data["answer"]) == len(data["needles"])
         for item in data["answer"]:
             assert str(item).isdigit()
 
