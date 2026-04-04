@@ -1,5 +1,4 @@
-# Memskills — Recursive Language Model (RLM)
-
+# context skills
 A Python toolkit that enables LLMs to process arbitrarily large inputs without loading full content into memory, solving the "context rot" problem where accuracy degrades as inputs approach context window limits.
 
 ## How It Works
