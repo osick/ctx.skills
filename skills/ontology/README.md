@@ -1,4 +1,4 @@
-# ontology — a Claude Code skill
+# ontology — an agentic skill to build knowledge triples
 
 Extract a typed node/edge ontology from a set of text documents, then search, edit, traverse, merge, and export it.
 
