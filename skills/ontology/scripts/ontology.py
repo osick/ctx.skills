@@ -14,6 +14,7 @@ import json
 import math
 import re
 import sys
+import unicodedata
 from collections import Counter, deque
 from datetime import datetime, timezone
 from pathlib import Path
@@ -49,9 +50,30 @@ def save(path: str, onto: dict) -> None:
     )
 
 
+# German diacritics get expanded to two-letter equivalents BEFORE NFKD,
+# because NFKD alone would strip the umlaut diacritic and produce
+# "Muenchen" -> "Munchen" which is wrong in German.
+_GERMAN_MAP = str.maketrans({
+    "ä": "ae", "ö": "oe", "ü": "ue",
+    "Ä": "Ae", "Ö": "Oe", "Ü": "Ue",
+    "ß": "ss", "ẞ": "SS",
+})
+
+
 def slug(s: str) -> str:
-    out = re.sub(r"[^A-Za-z0-9_]+", "_", s).strip("_")
-    return out or "node"
+    """Deterministic slug used for node IDs.
+
+    Pipeline (must match the description in SKILL.md):
+      1. German diacritics map to two-letter equivalents (ä->ae, ö->oe, ü->ue, ß->ss).
+      2. Unicode NFKD strips remaining combining marks (é->e, ç->c, ñ->n, ...).
+      3. Any run of characters outside [A-Za-z0-9_] becomes a single underscore.
+      4. Leading/trailing underscores trimmed. Fallback "node" if empty.
+    """
+    s = str(s).translate(_GERMAN_MAP)
+    s = unicodedata.normalize("NFKD", s)
+    s = "".join(c for c in s if not unicodedata.combining(c))
+    s = re.sub(r"[^A-Za-z0-9_]+", "_", s).strip("_")
+    return s or "node"
 
 
 def parse_props(raw):
