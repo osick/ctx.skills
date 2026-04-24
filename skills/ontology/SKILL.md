@@ -42,11 +42,38 @@ Single JSON file. This is the source of truth. Every operation reads/writes this
 
 ### Rules
 
-- **`id`** is stable, unique, and slug-like (letters, digits, underscore). Prefer a slugified label. Treat it as a primary key.
-- **`label`** is the human-readable name. Can change without breaking edges.
+- **`id`** is a **deterministic function of the canonical label**: `id = slug(canonical_label)` (see the *Deterministic ID* section below). Treat it as a primary key. Never invent IDs, never append random suffixes. Two independent extractions of the same entity must produce the same ID so that `merge` can deduplicate automatically.
+  - **Exception — external identifiers:** if the entity already carries a globally unique code (article numbers like `N05101DE`, DOIs, ORCID, Wikidata Q-IDs, URNs), use that code verbatim as the ID and mirror it in `label` (or set `label` to a human-readable name). The code is already canonical; don't re-slug it.
+  - **Homonyms must be disambiguated in the label, not the ID.** If two distinct entities share a surface form (e.g., "Berlin" the city vs. "Berlin" the person), rewrite the canonical label of each with a parenthetical disambiguator (`"Berlin (Germany)"`, `"Berlin (Irving)"`) so the slugs become different (`Berlin_Germany`, `Berlin_Irving`).
+- **`label`** is the human-readable name. Keep it in sync with the ID (changing the label changes the canonical ID, which breaks edges — so label changes require ID migration).
 - **`type`** on nodes is a short controlled vocabulary (see below). On edges it is a snake_case relation name.
 - **`props`** is an optional dict for anything else (source document, page, confidence, date, aliases, etc.).
 - Edges are **directed**. An undirected relation like `synonym_of` should still be written once; consumers can treat the type as symmetric.
+
+### Deterministic ID: the `slug` function
+
+Implemented as `slug()` in `scripts/ontology.py`. **You must produce the same IDs whether you use the CLI or bulk-write JSON directly.** The function is:
+
+1. Map German diacritics to two-letter equivalents: `ä→ae`, `ö→oe`, `ü→ue`, `Ä→Ae`, `Ö→Oe`, `Ü→Ue`, `ß→ss`.
+2. Apply Unicode NFKD and drop combining marks — this handles the remaining Latin diacritics (`é→e`, `ç→c`, `ñ→n`, `ï→i`, …).
+3. Replace any run of characters outside `[A-Za-z0-9_]` with a single underscore.
+4. Trim leading/trailing underscores. Return `"node"` if the result is empty.
+
+Examples:
+
+| Canonical label | ID |
+|---|---|
+| `Dog` | `Dog` |
+| `Region Süd` | `Region_Sued` |
+| `München` | `Muenchen` |
+| `Zürich` | `Zuerich` |
+| `Straße des 17. Juni` | `Strasse_des_17_Juni` |
+| `New York City` | `New_York_City` |
+| `Rex (the dog)` | `Rex_the_dog` |
+| `café chat` | `cafe_chat` |
+| `N05101DE` (external code) | `N05101DE` (used verbatim, no slugging) |
+
+When the CLI is invoked without `--id`, it auto-applies `slug(--label)`. When you bulk-write JSON, you must apply the same function yourself — mentally or via a short Python snippet.
 
 ### Recommended controlled vocabularies
 
@@ -126,6 +153,55 @@ python scripts/ontology.py -f ontology.json validate
 ```
 
 Report node/edge counts and any dangling references to the user. Ask before auto-fixing.
+
+## Before each new document (incremental builds)
+
+When growing an existing master ontology with a new document, **always** follow this checklist before proposing any new triples. Skipping it is the #1 source of duplicate entities and edge-type drift — and those problems compound with every additional document.
+
+1. **Read the current master stats** so you know what already exists:
+   ```bash
+   python scripts/ontology.py -f master.json stats
+   ```
+   Note every **edge type** already in use. Prefer them. Only introduce a new edge type if none of the existing ones fits — and say so explicitly in your response.
+
+2. **Search for likely-overlapping entities** from the new document, *before* extracting:
+   ```bash
+   # for each major named entity you expect to propose
+   python scripts/ontology.py -f master.json search "<surface form>"
+   ```
+   If a hit exists, reuse its `id` verbatim. Do not create a near-duplicate.
+
+3. **Canonicalize labels** before computing IDs:
+   - Strip leading articles ("the", "der/die/das", "a/an") and surrounding whitespace.
+   - Singular form for `Class` labels.
+   - Title case for classes (`Dog`, not `dog` or `dogs`).
+   - Preserve proper-noun casing for instances (`Berlin Hbf`, `Angela Merkel`).
+   - For homonyms, disambiguate in the label with a parenthetical (see *Rules* above).
+
+4. **Compute IDs deterministically** via `slug(canonical_label)`. Two extractions of `"Region Süd"` must both yield `Region_Sued`. External codes (article numbers, DOIs) are used verbatim.
+
+5. **Bulk-write** the per-document ontology to `ontology_<docname>.json`. Do **not** call `add-node`/`add-edge` in a loop for bulk builds — each CLI call rewrites the whole file, so N calls on an ontology with M nodes is O(N·M).
+
+6. **Validate the per-document file**:
+   ```bash
+   python scripts/ontology.py -f ontology_<docname>.json validate
+   ```
+
+7. **Merge into the master** and read the conflict report:
+   ```bash
+   python scripts/ontology.py -f master.json merge ontology_<docname>.json
+   ```
+   Each conflict is an ID where the two files disagree on a node's contents — usually a same-entity-different-props situation. Review before using `--overwrite`.
+
+8. **Spot-check for dedup failures** — same-label-different-ID pairs:
+   ```bash
+   python scripts/ontology.py -f master.json search "<label of interest>"
+   ```
+   If two nodes have near-identical labels but different IDs, one of them was named non-canonically. Fix the label → recompute the ID → re-merge.
+
+9. **Commit** `master.json` to version control before processing the next document. Merges are not rollback-safe.
+
+When the user asks to process a batch of N documents, run this checklist once per document and report a short per-doc summary (nodes added, edges added, conflicts) rather than a wall of per-triple output.
 
 ## Operations reference
 
