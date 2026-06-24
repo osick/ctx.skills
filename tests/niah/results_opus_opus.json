@@ -1,0 +1,26 @@
+[
+  {
+    "mode": "direct",
+    "needle_type": "reasoning",
+    "size": 5000000,
+    "seed": 1,
+    "expected": "laptop",
+    "actual": "The most expensive item is the **laptop**. It is priced higher than the tablet, which in turn costs more than the speaker (the cheapest item).",
+    "score": 1.0,
+    "elapsed_seconds": 133.606,
+    "token_count": 5000000,
+    "llm_cmd": "claude -p --model claude-opus-4-6"
+  },
+  {
+    "mode": "rlm",
+    "needle_type": "reasoning",
+    "size": 5000000,
+    "seed": 1,
+    "expected": "laptop",
+    "actual": "The **laptop** is the most expensive item. The embedded facts state that the price of the laptop is higher than the tablet, the tablet costs more than the speaker, and the speaker is the lowest of all — making the ranking: laptop > tablet > speaker.",
+    "score": 1.0,
+    "elapsed_seconds": 38.428,
+    "token_count": 5000000,
+    "llm_cmd": "claude -p --model claude-opus-4-6"
+  }
+]

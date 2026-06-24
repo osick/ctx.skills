@@ -103,6 +103,7 @@ class TestResultFormat:
             score=1.0,
             elapsed=2.5,
             token_count=1000,
+            llm_cmd="claude -p --model sonnet",
         )
         assert result["mode"] == "direct"
         assert result["needle_type"] == "retrieval"
@@ -112,6 +113,7 @@ class TestResultFormat:
         assert result["token_count"] == 1000
         assert result["expected"] == "Berlin"
         assert result["actual"] == "Berlin"
+        assert result["llm_cmd"] == "claude -p --model sonnet"
 
 
 # ---------------------------------------------------------------------------
@@ -200,9 +202,77 @@ class TestCLIIntegration:
         assert "score" in r.stdout.lower() or "result" in r.stdout.lower()
 
     def test_missing_llm_cmd(self):
+        """No LLM command at all should fail."""
         r = _run(["--size", "500", "--needle-type", "retrieval", "--seed", "1",
-                   "--mode", "direct"], check=False)
+                   "--mode", "direct", "--results", "/tmp/niah_test_missing.json"],
+                  check=False)
         assert r.returncode != 0
+
+    def test_separate_llm_cmds(self, tmp_path):
+        """--llm-cmd-direct and --llm-cmd-rlm can specify different commands."""
+        results_file = tmp_path / "results.json"
+        r = _run([
+            "--size", "500",
+            "--needle-type", "retrieval",
+            "--seed", "1",
+            "--mode", "both",
+            "--llm-cmd-direct", _make_echo_cmd("Berlin"),
+            "--llm-cmd-rlm", _make_echo_cmd("<answer>Berlin</answer>"),
+            "--results", str(results_file),
+        ])
+        data = json.loads(results_file.read_text())
+        assert len(data) == 2
+        modes = {d["mode"] for d in data}
+        assert modes == {"direct", "rlm"}
+
+    def test_llm_cmd_direct_only(self, tmp_path):
+        """--llm-cmd-direct alone is enough for direct mode."""
+        results_file = tmp_path / "results.json"
+        r = _run([
+            "--size", "500",
+            "--needle-type", "retrieval",
+            "--seed", "1",
+            "--mode", "direct",
+            "--llm-cmd-direct", _make_echo_cmd("Berlin"),
+            "--results", str(results_file),
+        ])
+        data = json.loads(results_file.read_text())
+        assert len(data) == 1
+        assert data[0]["mode"] == "direct"
+
+    def test_llm_cmd_in_results(self, tmp_path):
+        """The llm_cmd used should be recorded in results.json."""
+        results_file = tmp_path / "results.json"
+        echo_cmd = _make_echo_cmd("Berlin")
+        r = _run([
+            "--size", "500",
+            "--needle-type", "retrieval",
+            "--seed", "1",
+            "--mode", "direct",
+            "--llm-cmd", echo_cmd,
+            "--results", str(results_file),
+        ])
+        data = json.loads(results_file.read_text())
+        assert data[0]["llm_cmd"] == echo_cmd
+
+    def test_separate_cmds_in_results(self, tmp_path):
+        """When using separate commands, each result records its own llm_cmd."""
+        results_file = tmp_path / "results.json"
+        direct_cmd = _make_echo_cmd("Berlin")
+        rlm_cmd = _make_echo_cmd("<answer>Berlin</answer>")
+        r = _run([
+            "--size", "500",
+            "--needle-type", "retrieval",
+            "--seed", "1",
+            "--mode", "both",
+            "--llm-cmd-direct", direct_cmd,
+            "--llm-cmd-rlm", rlm_cmd,
+            "--results", str(results_file),
+        ])
+        data = json.loads(results_file.read_text())
+        by_mode = {d["mode"]: d for d in data}
+        assert by_mode["direct"]["llm_cmd"] == direct_cmd
+        assert by_mode["rlm"]["llm_cmd"] == rlm_cmd
 
 
 # ---------------------------------------------------------------------------

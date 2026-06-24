@@ -12,7 +12,12 @@ Usage:
     python benchmark.py --size 5000 --needle-type retrieval --seed 1 \
         --mode direct --llm-cmd "claude -p" --results results.json
 
-    # Compare direct vs RLM
+    # Compare direct vs RLM with different models
+    python benchmark.py --size 10000 --needle-type reasoning --seed 1 \
+        --mode both --llm-cmd-direct "claude -p --model sonnet" \
+        --llm-cmd-rlm "claude -p --model haiku" --results results.json
+
+    # Same model for both (--llm-cmd is the default for both modes)
     python benchmark.py --size 10000 --needle-type reasoning --seed 1 \
         --mode both --llm-cmd "claude -p" --results results.json
 
@@ -83,6 +88,7 @@ def make_result(
     score: float,
     elapsed: float,
     token_count: int,
+    llm_cmd: str = "",
 ) -> dict:
     return {
         "mode": mode,
@@ -94,6 +100,7 @@ def make_result(
         "score": score,
         "elapsed_seconds": round(elapsed, 3),
         "token_count": token_count,
+        "llm_cmd": llm_cmd,
     }
 
 
@@ -136,8 +143,61 @@ def _run_direct(question: str, sandbox_dir: str, llm_cmd: str) -> tuple[str, flo
     elapsed = time.monotonic() - start
 
     if result.returncode != 0:
-        return f"[LLM error: {result.stderr.strip()[:200]}]", elapsed
+        return f"[LLM error: {result.stderr.strip()[:2000]}]", elapsed
     return result.stdout.strip(), elapsed
+
+
+_RLM_SEGMENTS = 20       # number of segment files for RLM manifest
+_WORDS_PER_LINE = 80     # words per line within each segment
+
+
+def _prepare_rlm_input(sandbox_dir: str) -> str:
+    """Split chunk files into a handful of segment files for RLM processing.
+
+    With many small chunk files (e.g. 4000 for a 2M-token context) the RLM
+    manifest becomes huge and overwhelms smaller models.  A single merged
+    file is too opaque — the model has no structure to guide its search.
+
+    Instead, we create ~20 segment files with ~80 words per line.  This gives
+    the RLM manifest enough structure (file names with numbered ranges) for
+    the model to make informed peek/recurse decisions while keeping the
+    manifest compact.
+
+    Returns the path to the segment directory.
+    """
+    sb = Path(sandbox_dir) / "sandbox"
+    seg_dir = sb / "segments"
+
+    # If already created, skip
+    if seg_dir.exists():
+        return str(seg_dir)
+    seg_dir.mkdir()
+
+    # Collect all words from chunks
+    words: list[str] = []
+    for f in sorted(sb.glob("chunk_*.txt")):
+        words.extend(f.read_text(encoding="utf-8").split())
+
+    # Split into segments, each with multi-line content
+    total = len(words)
+    words_per_seg = max(1, total // _RLM_SEGMENTS)
+
+    for seg_idx in range(_RLM_SEGMENTS):
+        start = seg_idx * words_per_seg
+        end = start + words_per_seg if seg_idx < _RLM_SEGMENTS - 1 else total
+        seg_words = words[start:end]
+        if not seg_words:
+            break
+
+        lines: list[str] = []
+        for i in range(0, len(seg_words), _WORDS_PER_LINE):
+            lines.append(" ".join(seg_words[i : i + _WORDS_PER_LINE]))
+
+        (seg_dir / f"segment_{seg_idx:02d}.txt").write_text(
+            "\n".join(lines), encoding="utf-8"
+        )
+
+    return str(seg_dir)
 
 
 def _run_rlm(question: str, sandbox_dir: str, llm_cmd: str) -> tuple[str, float]:
@@ -150,12 +210,12 @@ def _run_rlm(question: str, sandbox_dir: str, llm_cmd: str) -> tuple[str, float]
     )
     rlm_script = os.path.normpath(rlm_script)
 
-    sb = os.path.join(sandbox_dir, "sandbox")
+    seg_dir = _prepare_rlm_input(sandbox_dir)
 
     cmd = [
         sys.executable, rlm_script,
         "--query", question,
-        "--input", sb,
+        "--input", seg_dir,
         "--llm-cmd", llm_cmd,
     ]
 
@@ -164,7 +224,7 @@ def _run_rlm(question: str, sandbox_dir: str, llm_cmd: str) -> tuple[str, float]
     elapsed = time.monotonic() - start
 
     if result.returncode != 0:
-        return f"[RLM error: {result.stderr.strip()[:200]}]", elapsed
+        return f"[RLM error: {result.stderr.strip()[:2000]}]", elapsed
     return result.stdout.strip(), elapsed
 
 
@@ -178,11 +238,21 @@ def run_benchmark(
     seed: int,
     mode: str,
     llm_cmd: str,
+    llm_cmd_direct: Optional[str] = None,
+    llm_cmd_rlm: Optional[str] = None,
 ) -> list[dict]:
     """Run one or two benchmark trials (direct and/or rlm).
 
+    Args:
+        llm_cmd: Default LLM command used for both modes.
+        llm_cmd_direct: Override LLM command for direct mode (optional).
+        llm_cmd_rlm: Override LLM command for RLM mode (optional).
+
     Returns a list of result dicts.
     """
+    cmd_direct = llm_cmd_direct or llm_cmd
+    cmd_rlm = llm_cmd_rlm or llm_cmd
+
     # Generate context
     data = generate_needle_context(size=size, needle_type=needle_type, seed=seed)
     token_count = data["context_length"]
@@ -199,9 +269,11 @@ def run_benchmark(
 
         for m in modes:
             if m == "direct":
-                actual, elapsed = _run_direct(question, tmp_dir, llm_cmd)
+                cmd_used = cmd_direct
+                actual, elapsed = _run_direct(question, tmp_dir, cmd_used)
             else:
-                actual, elapsed = _run_rlm(question, tmp_dir, llm_cmd)
+                cmd_used = cmd_rlm
+                actual, elapsed = _run_rlm(question, tmp_dir, cmd_used)
 
             sc = score_answer(actual, expected, needle_type)
             results.append(make_result(
@@ -214,6 +286,7 @@ def run_benchmark(
                 score=sc,
                 elapsed=elapsed,
                 token_count=token_count,
+                llm_cmd=cmd_used,
             ))
 
         return results
@@ -287,11 +360,24 @@ def main() -> None:
     parser.add_argument("--mode", type=str, required=True,
                         choices=["direct", "rlm", "both"],
                         help="Test mode: direct (full context), rlm, or both")
-    parser.add_argument("--llm-cmd", type=str, required=True, dest="llm_cmd",
-                        help="Shell command: reads prompt from stdin, writes answer to stdout")
+    parser.add_argument("--llm-cmd", type=str, default=None, dest="llm_cmd",
+                        help="Default LLM shell command for both modes")
+    parser.add_argument("--llm-cmd-direct", type=str, default=None, dest="llm_cmd_direct",
+                        help="LLM command for direct mode (overrides --llm-cmd)")
+    parser.add_argument("--llm-cmd-rlm", type=str, default=None, dest="llm_cmd_rlm",
+                        help="LLM command for RLM mode (overrides --llm-cmd)")
     parser.add_argument("--results", type=str, required=True,
                         help="Output JSON file for results")
     args = parser.parse_args()
+
+    # Validate: at least one LLM command must be provided
+    if not args.llm_cmd and not args.llm_cmd_direct and not args.llm_cmd_rlm:
+        parser.error("At least one of --llm-cmd, --llm-cmd-direct, --llm-cmd-rlm is required")
+    # Validate: mode-specific commands are available
+    if args.mode in ("direct", "both") and not (args.llm_cmd or args.llm_cmd_direct):
+        parser.error("Direct mode requires --llm-cmd or --llm-cmd-direct")
+    if args.mode in ("rlm", "both") and not (args.llm_cmd or args.llm_cmd_rlm):
+        parser.error("RLM mode requires --llm-cmd or --llm-cmd-rlm")
 
     # Resolve seeds
     if args.seeds:
@@ -312,7 +398,9 @@ def main() -> None:
             needle_type=args.needle_type,
             seed=seed,
             mode=args.mode,
-            llm_cmd=args.llm_cmd,
+            llm_cmd=args.llm_cmd or "",
+            llm_cmd_direct=args.llm_cmd_direct,
+            llm_cmd_rlm=args.llm_cmd_rlm,
         )
         all_results.extend(trial_results)
 

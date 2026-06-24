@@ -1,0 +1,122 @@
+[
+  {
+    "mode": "direct",
+    "needle_type": "reasoning",
+    "size": 2000000,
+    "seed": 111,
+    "expected": "phone",
+    "actual": "The most expensive item is the **phone**. The price ranking from lowest to highest is: camera < speaker < phone.",
+    "score": 1.0,
+    "elapsed_seconds": 219.982,
+    "token_count": 2000000,
+    "llm_cmd": "claude -p --model claude-opus-4-6"
+  },
+  {
+    "mode": "rlm",
+    "needle_type": "reasoning",
+    "size": 2000000,
+    "seed": 111,
+    "expected": "phone",
+    "actual": "[RLM error: Traceback (most recent call last):\n  File \"/home/os/development/memskills/skills/rlm/rlm.py\", line 240, in <module>\n    main()\n  File \"/home/os/development/memskills/skills/rlm/rlm.py\", line 233, in m]",
+    "score": 0.0,
+    "elapsed_seconds": 37.568,
+    "token_count": 2000000,
+    "llm_cmd": "claude -p --model claude-haiku-4-5"
+  },
+  {
+    "mode": "direct",
+    "needle_type": "reasoning",
+    "size": 2000000,
+    "seed": 4,
+    "expected": "speaker",
+    "actual": "From the text, I found two key statements:\n\n1. \"The price of **speaker** is higher than the camera.\" (line 400-401)\n2. \"The price of **tablet** is the lowest of all.\" (line 3600-3601)\n\nThe **speaker** is the most expensive item.",
+    "score": 1.0,
+    "elapsed_seconds": 50.341,
+    "token_count": 2000000,
+    "llm_cmd": "claude -p --model claude-opus-4-6"
+  },
+  {
+    "mode": "rlm",
+    "needle_type": "reasoning",
+    "size": 2000000,
+    "seed": 4,
+    "expected": "speaker",
+    "actual": "",
+    "score": 0.0,
+    "elapsed_seconds": 17.695,
+    "token_count": 2000000,
+    "llm_cmd": "claude -p --model claude-haiku-4-5"
+  },
+  {
+    "mode": "direct",
+    "needle_type": "reasoning",
+    "size": 2000000,
+    "seed": 6,
+    "expected": "Xiaohong",
+    "actual": "The three statements found are:\n\n1. \"Xiaofang is the youngest of the three.\"\n2. \"Xiaowei is younger than Xiaohong but older [than Xiaofang].\"\n3. \"Xiaohong is older than Xiaowei.\"\n\n**Xiaohong** is the oldest of the three.",
+    "score": 1.0,
+    "elapsed_seconds": 281.865,
+    "token_count": 2000000,
+    "llm_cmd": "claude -p --model claude-opus-4-6"
+  },
+  {
+    "mode": "rlm",
+    "needle_type": "reasoning",
+    "size": 2000000,
+    "seed": 6,
+    "expected": "Xiaohong",
+    "actual": "",
+    "score": 0.0,
+    "elapsed_seconds": 14.428,
+    "token_count": 2000000,
+    "llm_cmd": "claude -p --model claude-haiku-4-5"
+  },
+  {
+    "mode": "direct",
+    "needle_type": "reasoning",
+    "size": 2000000,
+    "seed": 2,
+    "expected": "Xiaohong",
+    "actual": "The relevant text is at the boundary of lines 400-401: **\"Xiaoli finished the race before Xiaohong.\"**\n\nDer Zweite im Rennen war **Xiaohong**. Xiaoli beendete das Rennen vor Xiaohong, somit kam Xiaohong als Zweite/r ins Ziel.",
+    "score": 1.0,
+    "elapsed_seconds": 114.86,
+    "token_count": 2000000,
+    "llm_cmd": "claude -p --model claude-opus-4-6"
+  },
+  {
+    "mode": "rlm",
+    "needle_type": "reasoning",
+    "size": 2000000,
+    "seed": 2,
+    "expected": "Xiaohong",
+    "actual": "[RLM error: Traceback (most recent call last):\n  File \"/home/os/development/memskills/skills/rlm/rlm.py\", line 240, in <module>\n    main()\n  File \"/home/os/development/memskills/skills/rlm/rlm.py\", line 233, in m]",
+    "score": 0.0,
+    "elapsed_seconds": 27.946,
+    "token_count": 2000000,
+    "llm_cmd": "claude -p --model claude-haiku-4-5"
+  },
+  {
+    "mode": "direct",
+    "needle_type": "reasoning",
+    "size": 2000000,
+    "seed": 1,
+    "expected": "laptop",
+    "actual": "The **laptop** is the most expensive item.\n\nThe context establishes a price ordering: speaker (lowest) < tablet < laptop (highest).",
+    "score": 1.0,
+    "elapsed_seconds": 81.579,
+    "token_count": 2000000,
+    "llm_cmd": "claude -p --model claude-opus-4-6"
+  },
+  {
+    "mode": "rlm",
+    "needle_type": "reasoning",
+    "size": 2000000,
+    "seed": 1,
+    "expected": "laptop",
+    "actual": "",
+    "score": 0.0,
+    "elapsed_seconds": 20.663,
+    "token_count": 2000000,
+    "llm_cmd": "claude -p --model claude-haiku-4-5"
+  }
+]

@@ -1,0 +1,26 @@
+[
+  {
+    "mode": "direct",
+    "needle_type": "reasoning",
+    "size": 2000000,
+    "seed": 1,
+    "expected": "laptop",
+    "actual": "The most expensive item is the **laptop**. The text contains scattered price comparisons establishing that the laptop is more expensive than the tablet, which in turn costs more than the speaker.",
+    "score": 1.0,
+    "elapsed_seconds": 135.04,
+    "token_count": 2000000,
+    "llm_cmd": "claude -p --model claude-opus-4-6"
+  },
+  {
+    "mode": "rlm",
+    "needle_type": "reasoning",
+    "size": 2000000,
+    "seed": 1,
+    "expected": "laptop",
+    "actual": "Based on the embedded information within the documents, the **laptop** is the most expensive item.\n\nThe document explicitly states in segment_02.txt: \"laptop is higher than the tablet,\" indicating that the laptop's price is higher than the tablet's price. While the documents contain extensive narrative content about various activities and locations, this single price comparison statement is the only explicit pricing information provided in the dataset.",
+    "score": 1.0,
+    "elapsed_seconds": 213.293,
+    "token_count": 2000000,
+    "llm_cmd": "claude -p --model claude-haiku-4-5"
+  }
+]

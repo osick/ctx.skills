@@ -1,0 +1,74 @@
+[
+  {
+    "mode": "direct",
+    "needle_type": "reasoning",
+    "size": 2000000,
+    "seed": 111,
+    "expected": "phone",
+    "actual": "**The phone is the most expensive item.**\n\nThe text contains embedded price comparisons establishing a hierarchy: camera (lowest) < speaker < phone (highest).",
+    "score": 1.0,
+    "elapsed_seconds": 127.638,
+    "token_count": 2000000,
+    "llm_cmd": "claude -p --model claude-opus-4-6"
+  },
+  {
+    "mode": "rlm",
+    "needle_type": "reasoning",
+    "size": 2000000,
+    "seed": 111,
+    "expected": "phone",
+    "actual": "Based on the context provided, the document contains a hidden reference at line 12500-12501:\n\n\"waiting to be collected at speaker costs more than camera. the end of the six-week course.\"\n\nThe **speaker** is the most expensive item, as it explicitly states that a speaker costs more than a camera.",
+    "score": 0.0,
+    "elapsed_seconds": 261.654,
+    "token_count": 2000000,
+    "llm_cmd": "claude -p --model claude-haiku-4-5"
+  },
+  {
+    "mode": "direct",
+    "needle_type": "reasoning",
+    "size": 2000000,
+    "seed": 4,
+    "expected": "speaker",
+    "actual": "The **speaker** is the most expensive item. The text contains price comparisons showing: speaker > camera > tablet, with the tablet explicitly stated as the lowest priced.",
+    "score": 1.0,
+    "elapsed_seconds": 193.132,
+    "token_count": 2000000,
+    "llm_cmd": "claude -p --model claude-opus-4-6"
+  },
+  {
+    "mode": "rlm",
+    "needle_type": "reasoning",
+    "size": 2000000,
+    "seed": 4,
+    "expected": "speaker",
+    "actual": "[RLM error: Traceback (most recent call last):\n  File \"/home/os/development/memskills/skills/rlm/rlm.py\", line 240, in <module>\n    main()\n  File \"/home/os/development/memskills/skills/rlm/rlm.py\", line 233, in main\n    result = rlm(args.query, manifest, args.llm_cmd, args.max_depth, args.max_turns)\n  File \"/home/os/development/memskills/skills/rlm/rlm.py\", line 198, in rlm\n    sub_result = rlm(\n  File \"/home/os/development/memskills/skills/rlm/rlm.py\", line 198, in rlm\n    sub_result = rlm(\n  File \"/home/os/development/memskills/skills/rlm/rlm.py\", line 198, in rlm\n    sub_result = rlm(\n  [Previous line repeated 1 more time]\n  File \"/home/os/development/memskills/skills/rlm/rlm.py\", line 185, in rlm\n    response = call_llm(prompt, llm_cmd)\n  File \"/home/os/development/memskills/skills/rlm/rlm.py\", line 155, in call_llm\n    raise RuntimeError(\nRuntimeError: LLM command failed (exit 1):]",
+    "score": 0.0,
+    "elapsed_seconds": 453.713,
+    "token_count": 2000000,
+    "llm_cmd": "claude -p --model claude-haiku-4-5"
+  },
+  {
+    "mode": "direct",
+    "needle_type": "reasoning",
+    "size": 2000000,
+    "seed": 6,
+    "expected": "Xiaohong",
+    "actual": "Now I see: \"Xiaowei is younger than Xiaohong but older than Xiaofang.\" And from chunk_1999: \"Xiaofang is the youngest of the three.\"\n\nSo the three people are Xiaohong, Xiaowei, and Xiaofang, with the order: **Xiaohong** (oldest) > Xiaowei > Xiaofang (youngest).\n\n**Xiaohong** is the oldest.",
+    "score": 1.0,
+    "elapsed_seconds": 102.191,
+    "token_count": 2000000,
+    "llm_cmd": "claude -p --model claude-opus-4-6"
+  },
+  {
+    "mode": "rlm",
+    "needle_type": "reasoning",
+    "size": 2000000,
+    "seed": 6,
+    "expected": "Xiaohong",
+    "actual": "Based on the text, **the old clock maker** is the character most directly identified as being older. He is explicitly described throughout as \"the old clock maker\" who works in his narrow workshop on Bridge Street, using tools made by his grandfather.\n\nWhile the document does not provide specific ages or exact age comparisons between characters, the old clock maker is the only individual explicitly characterized with age-related descriptors in the text. Other characters mentioned include a retired veterinarian (who has practiced for over twenty years), retired teachers, and a retired professional cellist, but none are directly called \"old\" as their primary descriptor.",
+    "score": 0.0,
+    "elapsed_seconds": 532.484,
+    "token_count": 2000000,
+    "llm_cmd": "claude -p --model claude-haiku-4-5"
+  }
+]
